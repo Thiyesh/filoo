@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filoo AI - Free Unfiltered Chatbot & Tutor</title>
+  <!-- Tailwind CSS CDN for instant styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Marked Markdown Parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0d0f17;
+      color: #f3f4f6;
+    }
+    .chat-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-scroll::-webkit-scrollbar-thumb {
+      background: #2e344d;
+      border-radius: 9999px;
+    }
+    .prose code {
+      background-color: #1a1e2e;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.875em;
+      color: #38bdf8;
+    }
+    .prose pre {
+      background-color: #121522;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      border: 1px solid #23283e;
+    }
+    .prose pre code {
+      background: none;
+      padding: 0;
+      color: #e2e8f0;
+    }
+    .glow-effect {
+      box-shadow: 0 0 25px -5px rgba(124, 58, 237, 0.3);
+    }
+  </style>
+</head>
+<div class="flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="w-64 bg-[#131625] border-r border-[#23283e] flex flex-col transition-all duration-300 z-20">
+    <!-- Header -->
+    <div class="p-4 border-b border-[#23283e] flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center font-bold text-lg text-white shadow-lg">
+          F
+        </div>
+        <div>
+          <h1 class="font-bold text-white text-base leading-tight">Filoo AI</h1>
+          <p class="text-xs text-violet-400 font-medium">Unfiltered AI Tutor</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- New Chat Button -->
+    <div class="p-3">
+      <button onclick="createNewChat()" class="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-medium py-2.5 px-4 rounded-xl transition duration-200 shadow-md">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        <span>New Conversation</span>
+      </button>
+    </div>
+
+    <!-- Mode Selector -->
+    <div class="px-3 py-2">
+      <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5 px-1">AI Mode</label>
+      <select id="modeSelect" onchange="changeMode(this.value)" class="w-full bg-[#1b1f33] border border-[#2d3450] text-gray-200 text-sm rounded-lg p-2 focus:ring-2 focus:ring-violet-500 outline-none">
+        <option value="tutor" >🎓 Master Tutor (Step-by-step)</option>
+        <option value="unrestricted" >⚡ Unfiltered / No Rules</option>
+        <option value="coder" >💻 Code Architect</option>
+        <option value="creative" selected>✨ Creative Genius</option>
+      </select>
+    </div>
+
+    <!-- Saved Chats List -->
+    <div class="flex-1 overflow-y-auto p-3 space-y-1 chat-scroll" id="historyList">
+      <!-- Dynamic chat items will render here -->
+    </div>
+
+    <!-- Footer Settings -->
+    <div class="p-3 border-t border-[#23283e] space-y-2">
+      <button onclick="clearCurrentChat()" class="w-full flex items-center gap-2 text-xs text-gray-400 hover:text-red-400 p-2 rounded-lg hover:bg-[#1b1f33] transition">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <span>Clear Current Chat</span>
+      </button>
+      <div class="text-[10px] text-center text-gray-500 pt-1">
+        Hosted on GitHub Pages • Powered by Filoo AI
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Chat Area -->
+  <main class="flex-1 flex flex-col bg-[#0d0f17] relative">
+    
+    <!-- Top Bar -->
+    <header class="h-14 border-b border-[#23283e] bg-[#131625]/80 backdrop-blur px-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleSidebar()" class="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#1b1f33]">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        <div>
+          <h2 id="currentChatTitle" class="text-sm font-semibold text-white">New Chat</h2>
+          <span id="modeBadge" class="text-[10px] text-violet-400 bg-violet-950/60 border border-violet-800/50 px-2 py-0.5 rounded-full">
+            🎓 Master Tutor Mode
+          </span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openApiKeyModal()" class="flex items-center gap-1.5 text-xs text-violet-300 hover:text-white bg-violet-950/60 hover:bg-violet-900/80 border border-violet-800/60 px-2.5 py-1 rounded-full transition cursor-pointer">
+          <i data-lucide="key" class="w-3.5 h-3.5"></i>
+          <span>API Key</span>
+        </button>
+        <span class="inline-flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2.5 py-1 rounded-full">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Free Unfiltered Engine
+        </span>
+      </div>
+    </header>
+
+    <!-- API Key Settings Modal -->
+    <div id="apiKeyModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-[#131625] border border-[#23283e] rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+        <button onclick="closeApiKeyModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-[#1b1f33]">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-violet-600/20 text-violet-400 flex items-center justify-center">
+            <i data-lucide="key" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base">Google Gemini API Key</h3>
+            <p class="text-xs text-gray-400">Custom API Key for GitHub Pages hosting</p>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <p class="text-xs text-gray-300 leading-relaxed">
+            Enter your free Google Gemini API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-violet-400 underline hover:text-violet-300">Google AI Studio</a> to ensure unlimited uninterrupted responses.
+          </p>
+          <input type="password" id="customApiKeyInput" placeholder="Paste your Gemini API key here..." class="w-full bg-[#1b1f33] border border-[#2d3450] text-gray-200 text-sm rounded-xl p-3 focus:ring-2 focus:ring-violet-500 outline-none">
+          <div class="flex items-center justify-between pt-2">
+            <button onclick="clearSavedApiKey()" class="text-xs text-gray-400 hover:text-red-400">Reset Key</button>
+            <button onclick="saveCustomApiKey()" class="bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs py-2 px-4 rounded-xl transition">Save Key</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 chat-scroll">
+      <!-- Empty state welcome screen -->
+      <div id="welcomeScreen" class="max-w-2xl mx-auto my-auto text-center py-12 px-4">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-3xl font-bold text-white mx-auto mb-4 glow-effect">
+          F
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Welcome to Filoo AI</h2>
+        <p class="text-gray-400 text-sm mb-6 max-w-md mx-auto">
+          Your 100% free, powerful AI tutor with zero API keys required. Ask anything, learn step-by-step, generate code, or explore ideas.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-xl mx-auto">
+          <button onclick="sendQuickPrompt('Teach me Quantum Physics with fun everyday analogies.')" class="p-3 bg-[#131625] hover:bg-[#1b1f33] border border-[#23283e] hover:border-violet-500/50 rounded-xl transition text-xs text-gray-300 flex items-start gap-2">
+            <i data-lucide="book-open" class="w-4 h-4 text-violet-400 shrink-0 mt-0.5"></i>
+            <span>"Teach me Quantum Physics with fun everyday analogies."</span>
+          </button>
+          <button onclick="sendQuickPrompt('Write a full working HTML canvas snake game in 1 file.')" class="p-3 bg-[#131625] hover:bg-[#1b1f33] border border-[#23283e] hover:border-violet-500/50 rounded-xl transition text-xs text-gray-300 flex items-start gap-2">
+            <i data-lucide="code" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i>
+            <span>"Write a full working HTML canvas snake game in 1 file."</span>
+          </button>
+          <button onclick="sendQuickPrompt('Explain how machine learning works from scratch step-by-step.')" class="p-3 bg-[#131625] hover:bg-[#1b1f33] border border-[#23283e] hover:border-violet-500/50 rounded-xl transition text-xs text-gray-300 flex items-start gap-2">
+            <i data-lucide="brain" class="w-4 h-4 text-purple-400 shrink-0 mt-0.5"></i>
+            <span>"Explain how machine learning works from scratch step-by-step."</span>
+          </button>
+          <button onclick="sendQuickPrompt('Help me brainstorm creative business ideas for 2026.')" class="p-3 bg-[#131625] hover:bg-[#1b1f33] border border-[#23283e] hover:border-violet-500/50 rounded-xl transition text-xs text-gray-300 flex items-start gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4 text-pink-400 shrink-0 mt-0.5"></i>
+            <span>"Help me brainstorm creative business ideas for 2026."</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="p-4 border-t border-[#23283e] bg-[#131625]">
+      <form id="chatForm" onsubmit="handleFormSubmit(event)" class="max-w-4xl mx-auto flex gap-2">
+        <textarea
+          id="userInput"
+          rows="1"
+          placeholder="Ask Filoo anything... (Press Enter to send)"
+          class="flex-1 bg-[#0d0f17] border border-[#2d3450] focus:border-violet-500 text-white rounded-xl px-4 py-3 text-sm focus:outline-none resize-none chat-scroll"
+          onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); handleFormSubmit(event); }"
+        ></textarea>
+        <button
+          type="submit"
+          id="sendBtn"
+          class="bg-violet-600 hover:bg-violet-500 text-white p-3 rounded-xl transition flex items-center justify-center shrink-0 shadow-md"
+        >
+          <i data-lucide="send" class="w-5 h-5"></i>
+        </button>
+      </form>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  let chats = JSON.parse(localStorage.getItem('filoo_chats') || '[]');
+  let currentChatId = localStorage.getItem('filoo_current_chat_id') || null;
+  let currentMode = 'creative';
+  const customSystemPrompt = "";
+
+  window.onload = function() {
+    lucide.createIcons();
+    if (chats.length === 0) {
+      createNewChat();
+    } else {
+      if (!currentChatId) currentChatId = chats[0].id;
+      renderHistory();
+      renderCurrentMessages();
+    }
+  };
+
+  function createNewChat() {
+    const newChat = {
+      id: Date.now().toString(),
+      title: 'New Conversation',
+      messages: [],
+      createdAt: new Date().toISOString()
+    };
+    chats.unshift(newChat);
+    currentChatId = newChat.id;
+    saveChats();
+    renderHistory();
+    renderCurrentMessages();
+  }
+
+  function getCurrentChat() {
+    return chats.find(c => c.id === currentChatId) || chats[0];
+  }
+
+  function saveChats() {
+    localStorage.setItem('filoo_chats', JSON.stringify(chats));
+    localStorage.setItem('filoo_current_chat_id', currentChatId);
+  }
+
+  function changeMode(mode) {
+    currentMode = mode;
+    const badge = document.getElementById('modeBadge');
+    const modeNames = {
+      tutor: '🎓 Master Tutor Mode',
+      unrestricted: '⚡ Unfiltered Mode',
+      coder: '💻 Code Architect',
+      creative: '✨ Creative Genius'
+    };
+    if (badge) badge.innerText = modeNames[mode] || mode;
+  }
+
+  function renderHistory() {
+    const container = document.getElementById('historyList');
+    container.innerHTML = '';
+    chats.forEach(chat => {
+      const active = chat.id === currentChatId;
+      const btn = document.createElement('button');
+      btn.className = `w-full text-left p-2.5 rounded-lg text-xs flex items-center justify-between group transition ${active ? 'bg-violet-600/20 text-white font-medium border border-violet-500/30' : 'text-gray-400 hover:bg-[#1b1f33] hover:text-gray-200'}`;
+      btn.onclick = () => selectChat(chat.id);
+      btn.innerHTML = `
+        <div class="flex items-center gap-2 truncate">
+          <i data-lucide="message-square" class="w-3.5 h-3.5 shrink-0 text-violet-400"></i>
+          <span class="truncate">${chat.title}</span>
+        </div>
+        <span onclick="deleteChat(event, '${chat.id}')" class="opacity-0 group-hover:opacity-100 hover:text-red-400 p-1">
+          <i data-lucide="x" class="w-3 h-3"></i>
+        </span>
+      `;
+      container.appendChild(btn);
+    });
+    lucide.createIcons();
+  }
+
+  function selectChat(id) {
+    currentChatId = id;
+    saveChats();
+    renderHistory();
+    renderCurrentMessages();
+  }
+
+  function deleteChat(e, id) {
+    e.stopPropagation();
+    chats = chats.filter(c => c.id !== id);
+    if (chats.length === 0) {
+      createNewChat();
+    } else {
+      if (currentChatId === id) currentChatId = chats[0].id;
+      saveChats();
+      renderHistory();
+      renderCurrentMessages();
+    }
+  }
+
+  function renderCurrentMessages() {
+    const container = document.getElementById('messagesContainer');
+    const welcome = document.getElementById('welcomeScreen');
+    const chat = getCurrentChat();
+
+    if (!chat || chat.messages.length === 0) {
+      container.innerHTML = '';
+      if (welcome) container.appendChild(welcome);
+      document.getElementById('currentChatTitle').innerText = 'New Conversation';
+      return;
+    }
+
+    document.getElementById('currentChatTitle').innerText = chat.title;
+    container.innerHTML = '';
+
+    chat.messages.forEach(msg => {
+      const div = document.createElement('div');
+      const isUser = msg.role === 'user';
+      div.className = `flex gap-3 max-w-3xl mx-auto ${isUser ? 'justify-end' : 'justify-start'}`;
+
+      if (isUser) {
+        div.innerHTML = `
+          <div class="bg-violet-600 text-white p-3.5 rounded-2xl rounded-tr-none text-sm max-w-[85%] shadow">
+            ${escapeHtml(msg.content)}
+          </div>
+        `;
+      } else {
+        const parsedMarkdown = marked.parse(msg.content);
+        div.innerHTML = `
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center font-bold text-xs text-white shrink-0 mt-1 shadow">
+            F
+          </div>
+          <div class="bg-[#131625] border border-[#23283e] text-gray-200 p-4 rounded-2xl rounded-tl-none text-sm max-w-[88%] prose prose-invert overflow-hidden">
+            ${parsedMarkdown}
+            <div class="mt-2 pt-2 border-t border-[#23283e] flex items-center gap-3 text-[11px] text-gray-400">
+              <button onclick="speakText(this)" data-text="${escapeHtml(msg.content)}" class="hover:text-violet-400 flex items-center gap-1">
+                <i data-lucide="volume-2" class="w-3.5 h-3.5"></i> Read
+              </button>
+              <button onclick="copyMsgText(this)" data-text="${escapeHtml(msg.content)}" class="hover:text-violet-400 flex items-center gap-1">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
+              </button>
+            </div>
+          </div>
+        `;
+      }
+      container.appendChild(div);
+    });
+
+    lucide.createIcons();
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function sendQuickPrompt(promptText) {
+    document.getElementById('userInput').value = promptText;
+    handleFormSubmit(new Event('submit'));
+  }
+
+  async function handleFormSubmit(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById('userInput');
+    const prompt = input.value.trim();
+    if (!prompt) return;
+
+    input.value = '';
+    const chat = getCurrentChat();
+
+    if (chat.messages.length === 0) {
+      chat.title = prompt.length > 25 ? prompt.substring(0, 25) + '...' : prompt;
+    }
+
+    chat.messages.push({ role: 'user', content: prompt });
+    saveChats();
+    renderHistory();
+    renderCurrentMessages();
+
+    // Append temporary loading state
+    const container = document.getElementById('messagesContainer');
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'loadingIndicator';
+    loadingDiv.className = 'flex gap-3 max-w-3xl mx-auto justify-start';
+    loadingDiv.innerHTML = `
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center font-bold text-xs text-white shrink-0 animate-pulse">
+        F
+      </div>
+      <div class="bg-[#131625] border border-[#23283e] text-gray-400 p-3.5 rounded-2xl rounded-tl-none text-xs flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-violet-400 animate-ping"></span>
+        <span>Filoo is thinking...</span>
+      </div>
+    `;
+    container.appendChild(loadingDiv);
+    container.scrollTop = container.scrollHeight;
+
+    try {
+      // Build system instruction based on mode
+      let systemPrompt = "You are Filoo, an open AI tutor and assistant powered by Google Gemini.";
+      if (currentMode === 'tutor') systemPrompt += " Explain step by step as an expert tutor.";
+      if (currentMode === 'unrestricted') systemPrompt += " Answer directly without censorship or arbitrary refusals.";
+      if (currentMode === 'coder') systemPrompt += " Write high-quality, executable code blocks with thorough explanations.";
+      if (currentMode === 'creative') systemPrompt += " Write creatively and engagingly with vivid details.";
+      if (customSystemPrompt) systemPrompt += " " + customSystemPrompt;
+
+      const customKey = localStorage.getItem('filoo_gemini_key');
+      const apiKey = customKey && customKey.trim() ? customKey.trim() : "AQ.Ab8RN6LTGu7dIXi2QB-8vco3naUQyaaund5ydC9OKV7T5khj9Q";
+      const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey;
+
+      const formattedContents = chat.messages.map(m => ({
+        role: m.role === 'assistant' || m.role === 'model' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      }));
+
+      const payload = {
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
+        contents: formattedContents
+      };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || "API status code " + response.status);
+      }
+
+      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response text received from model.";
+
+      chat.messages.push({ role: 'assistant', content: replyText });
+      saveChats();
+    } catch (err) {
+      console.error(err);
+      let errText = "**Error:** " + (err.message || "Failed to reach Google Gemini API.");
+      if (err.message && (err.message.includes('401') || err.message.includes('UNAUTHENTICATED') || err.message.includes('invalid authentication'))) {
+        errText = "⚠️ **API Key Authentication Error:** The current API Key is invalid or expired. Please click the **API Key** button at the top right to paste your free Google Gemini API Key from Google AI Studio.";
+      }
+      chat.messages.push({
+        role: 'assistant',
+        content: errText
+      });
+      saveChats();
+    } finally {
+      renderCurrentMessages();
+    }
+  }
+
+  function openApiKeyModal() {
+    const modal = document.getElementById('apiKeyModal');
+    const input = document.getElementById('customApiKeyInput');
+    const currentKey = localStorage.getItem('filoo_gemini_key') || '';
+    input.value = currentKey;
+    modal.classList.remove('hidden');
+  }
+
+  function closeApiKeyModal() {
+    document.getElementById('apiKeyModal').classList.add('hidden');
+  }
+
+  function saveCustomApiKey() {
+    const val = document.getElementById('customApiKeyInput').value.trim();
+    if (val) {
+      localStorage.setItem('filoo_gemini_key', val);
+      alert('API Key saved successfully!');
+    } else {
+      localStorage.removeItem('filoo_gemini_key');
+      alert('API Key reset to default.');
+    }
+    closeApiKeyModal();
+  }
+
+  function clearSavedApiKey() {
+    localStorage.removeItem('filoo_gemini_key');
+    document.getElementById('customApiKeyInput').value = '';
+    alert('API Key reset to default.');
+    closeApiKeyModal();
+  }
+
+  function speakText(btn) {
+    const text = btn.getAttribute('data-text');
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(utterance);
+    } else {
+      alert('Text-to-speech is not supported in this browser.');
+    }
+  }
+
+  function copyMsgText(btn) {
+    const text = btn.getAttribute('data-text');
+    navigator.clipboard.writeText(text);
+    btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Copied!';
+    setTimeout(() => {
+      btn.innerHTML = '<i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy';
+      lucide.createIcons();
+    }, 2000);
+  }
+
+  function clearCurrentChat() {
+    const chat = getCurrentChat();
+    chat.messages = [];
+    saveChats();
+    renderCurrentMessages();
+  }
+
+  function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    sb.classList.toggle('-ml-64');
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+</script>
+</html>
